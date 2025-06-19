@@ -1,5 +1,5 @@
 import csv
-import tabulate
+from tabulate import tabulate
 import argparse
 
 class ParseArgs:
@@ -45,22 +45,90 @@ class ParseArgs:
         result = tuple([self.__filename, self.__where, self.__agregate, self.__order_by])
         return result
     
-class CsvRead:
-    def __init__(self, filename: str):
+class CsvProcessing:
+    def __init__(self, filename: str, where: str=None, agregate: str=None, order_by: str=None):
         self.__filename: str = filename
+        self.__where = where
+        self.__agregate = agregate
+        self.__order_by = order_by
+        self.__namesfields: dict = {}
+        self.__data: list[list] = None
+        self.set_namefields()
+        self.set_data()
+        self.condition_where()
+
+    def set_namefields(self):
+        with open(self.__filename, "r", encoding="UTF-8") as csvfile:
+            fields = list(csv.reader(csvfile, quotechar='|'))[0]
+            for i, field in enumerate(fields):
+                self.__namesfields[field] = self.__namesfields.get(field, i)
+
+    def condition_where(self):
+        if(not self.__where):
+           return
+        
+        symbols = ['>', '<', '=']
+        symbol: str = ''
+
+        for sm in symbols:
+            if(sm in self.__where):
+                symbol = sm
+                break
+
+        field, value = self.__where.split(symbol)
+        
+        index = self.__namesfields[field]
+        temp: list[list] = []
+
+        for row in self.__data:
+            if(symbol == '='):
+                if(row[index] == value):
+                    temp.append(row)
+            elif(symbol == '>'):
+                if(row[index] > value):
+                    temp.append(row)
+            elif(symbol == '<'):
+                if(row[index] < value):
+                    temp.append(row)
+
+        self.__data = temp
+
+    def condition_agregate(self):
+        if(not self.__agregate):
+            return
+
+        operators: list[str] = ["avg", "max", "min"]
+        operator: str = ""
+
+        for op in operators:
+            if(op in self.__agregate):
+                operator = op
+                break
+
+        field, value = self.__agregate.split('=')
+        res: float = 0
+        index: int = self.__namesfields[field]
+
+        # for row in self.__data:
+        #     if(operator == value == operators[1]):
+        #         res += row[index]
+
+
+
+
+    def set_data(self):
+        with open(self.__filename, "r", encoding="UTF-8") as csvfile:
+            data = list(csv.reader(csvfile, quotechar='|'))[1:]
+            self.__data = data
 
     def print_all_rows(self):
-        with open(self.__filename, "r", encoding="UTF-8") as csvfile:
-            rows = csv.reader(csvfile, delimiter=' ', quotechar='|')
-            for ros in rows:
-                print(', '.join(ros))
+        print(tabulate(self.__data, headers=self.__namesfields, tablefmt="pretty"))
 
 def main():
     parser = ParseArgs(argparse.ArgumentParser(description="Processing .csv"))
     filename, where, agregate, order_by = parser.get_all()
-    read_csv = CsvRead(filename)
+    read_csv = CsvProcessing(filename, where=where, agregate=agregate)
     read_csv.print_all_rows()
-
 
 
 if(__name__ == "__main__"):
