@@ -19,7 +19,7 @@ class ParseArgs:
         self.__parser.add_argument("--order-by", type=str, help="Please specify your field to sort by asc/desc")
 
     def __set_args(self):
-        args = self.__parser.parse_args()
+        args: argparse.Namespace = self.__parser.parse_args()
         self.__filename = args.file
         self.__where = args.where
         self.__agregate = args.agregate
@@ -41,41 +41,29 @@ class ParseArgs:
     def order_by(self):
         return self.__order_by
 
-    def get_all(self) -> tuple:
-        result = tuple([self.__filename, self.__where, self.__agregate, self.__order_by])
-        return result
-    
-class CsvProcessing:
-    def __init__(self, filename: str, where: str=None, agregate: str=None, order_by: str=None):
-        self.__filename: str = filename
-        self.__where = where
-        self.__agregate = agregate
-        self.__order_by = order_by
+class CsvProcessing(ParseArgs):
+    def __init__(self, parser):
+        super().__init__(parser)
         self.__namesfields: dict = {}
-        self.__data: list[list] = None
-        self.set_namefields()
-        self.set_data()
+        self.__data: list[list[str]] = None
+        self.set_all_data()
         self.condition_where()
-
-    def set_namefields(self):
-        with open(self.__filename, "r", encoding="UTF-8") as csvfile:
-            fields = list(csv.reader(csvfile, quotechar='|'))[0]
-            for i, field in enumerate(fields):
-                self.__namesfields[field] = self.__namesfields.get(field, i)
+        self.condition_agregate()
+        self.condition_orderby()
 
     def condition_where(self):
-        if(not self.__where):
+        if(not self.where):
            return
         
         symbols = ['>', '<', '=']
         symbol: str = ''
 
         for sm in symbols:
-            if(sm in self.__where):
+            if(sm in self.where):
                 symbol = sm
                 break
 
-        field, value = self.__where.split(symbol)
+        field, value = self.where.split(symbol)
         
         index = self.__namesfields[field]
         temp: list[list] = []
@@ -94,42 +82,74 @@ class CsvProcessing:
         self.__data = temp
 
     def condition_agregate(self):
-        if(not self.__agregate):
+        if(not self.agregate):
             return
 
         operators: list[str] = ["avg", "max", "min"]
         operator: str = ""
 
         for op in operators:
-            if(op in self.__agregate):
+            if(op in self.agregate):
                 operator = op
                 break
 
-        field, value = self.__agregate.split('=')
-        res: float = 0
+        field, _ = self.agregate.split('=')
+        temp: list = []
         index: int = self.__namesfields[field]
 
-        # for row in self.__data:
-        #     if(operator == value == operators[1]):
-        #         res += row[index]
+        for row in self.__data:
+            temp.append(float(row[index]))
 
+        self.__data.clear()
+        self.__namesfields.clear()
 
+        if(operator == operators[0]):
+            self.__data.append([sum(temp) / len(temp)])
+            self.__namesfields[operator] = self.__namesfields.get(operator, 1)
 
+        elif(operator == operators[1]):
+            self.__data.append([max(temp)])
+            self.__namesfields[operator] = self.__namesfields.get(operator, 1)
 
-    def set_data(self):
-        with open(self.__filename, "r", encoding="UTF-8") as csvfile:
-            data = list(csv.reader(csvfile, quotechar='|'))[1:]
-            self.__data = data
+        elif(operator == operators[2]):
+            self.__data.append([min(temp)])
+            self.__namesfields[operator] = self.__namesfields.get(operator, 1)
+
+    def condition_orderby(self):
+        if(not self.order_by):
+            return
+
+        sort_by: list = ["asc", "desc"]
+        operator: str = ""
+
+        for op in sort_by:
+            if(op in self.order_by):
+                operator = op
+                break
+
+        field, _ = self.order_by.split('=')
+        index = self.__namesfields[field]
+
+        flag = False
+        if(operator == sort_by[1]):
+            flag = True
+
+        self.__data.sort(key=lambda row: row[index], reverse=flag)
+
+    def set_all_data(self):
+        with open(self.filename, "r", encoding="UTF-8") as csvfile:
+            data = list(csv.reader(csvfile, quotechar='|'))
+            fields = data[0]
+            for i, field in enumerate(fields):
+                self.__namesfields[field] = self.__namesfields.get(field, i)
+            self.__data = data[1:]
 
     def print_all_rows(self):
-        print(tabulate(self.__data, headers=self.__namesfields, tablefmt="pretty"))
+        print(tabulate(self.__data, headers=self.__namesfields.keys(), tablefmt="pretty"))
 
 def main():
-    parser = ParseArgs(argparse.ArgumentParser(description="Processing .csv"))
-    filename, where, agregate, order_by = parser.get_all()
-    read_csv = CsvProcessing(filename, where=where, agregate=agregate)
-    read_csv.print_all_rows()
-
+    processing_csv = CsvProcessing(argparse.ArgumentParser(description="Processing .csv"))
+    processing_csv.print_all_rows()
 
 if(__name__ == "__main__"):
     main()
