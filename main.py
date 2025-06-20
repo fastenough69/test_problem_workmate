@@ -46,12 +46,12 @@ class CsvProcessing(ParseArgs):
         super().__init__(parser)
         self.__namesfields: dict = {}
         self.__data: list[list[str]] = None
-        self.set_all_data()
-        self.condition_where()
-        self.condition_agregate()
-        self.condition_orderby()
+        self.__set_all_data()
+        self.__condition_where()
+        self.__condition_agregate()
+        self.__condition_orderby()
 
-    def condition_where(self):
+    def __condition_where(self):
         if(not self.where):
            return
         
@@ -81,7 +81,7 @@ class CsvProcessing(ParseArgs):
 
         self.__data = temp
 
-    def condition_agregate(self):
+    def __condition_agregate(self):
         if(not self.agregate):
             return
 
@@ -115,7 +115,7 @@ class CsvProcessing(ParseArgs):
             self.__data.append([min(temp)])
             self.__namesfields[operator] = self.__namesfields.get(operator, 1)
 
-    def condition_orderby(self):
+    def __condition_orderby(self):
         if(not self.order_by):
             return
 
@@ -130,13 +130,11 @@ class CsvProcessing(ParseArgs):
         field, _ = self.order_by.split('=')
         index = self.__namesfields[field]
 
-        flag = False
-        if(operator == sort_by[1]):
-            flag = True
+        flag = (operator == sort_by[1])
 
         self.__data.sort(key=lambda row: row[index], reverse=flag)
 
-    def set_all_data(self):
+    def __set_all_data(self):
         with open(self.filename, "r", encoding="UTF-8") as csvfile:
             data = list(csv.reader(csvfile, quotechar='|'))
             fields = data[0]
