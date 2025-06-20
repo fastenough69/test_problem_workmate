@@ -66,20 +66,28 @@ class CsvProcessing(ParseArgs):
         field, value = self.where.split(symbol)
         
         index = self.__namesfields[field]
-        temp: list[list] = []
+        i = 0
+        last = len(self.__data)
 
-        for row in self.__data:
+        while(i < last):
             if(symbol == '='):
-                if(row[index] == value):
-                    temp.append(row)
+                if(self.__data[i][index] != value):
+                    self.__data.remove(self.__data[i])
+                    last -= 1
+                else:
+                    i += 1
             elif(symbol == '>'):
-                if(row[index] > value):
-                    temp.append(row)
+                if(not self.__data[i][index] > value):
+                    self.__data.remove(self.__data[i])
+                    last -= 1
+                else:
+                    i += 1
             elif(symbol == '<'):
-                if(row[index] < value):
-                    temp.append(row)
-
-        self.__data = temp
+                if(not self.__data[i][index] < value):
+                    self.__data.remove(self.__data[i])
+                    last -= 1
+                else:
+                    i += 1
 
     def __condition_agregate(self):
         if(not self.agregate):
