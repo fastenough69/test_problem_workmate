@@ -1,7 +1,7 @@
 import pytest
 import subprocess
 
-PATH_TO_PY = "../venv/Scripts/python.exe"
+PATH_TO_PY = "python3"
 PATH_TO_SCRIPT = "../main.py"
 CSV_FILE = "../test.csv"
 DIR_TEST_FILES = "out_files"
